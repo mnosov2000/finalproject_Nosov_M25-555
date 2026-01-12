@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+
+# Poetry
+.venv/
+poetry.lock
+
+# Build
+dist/
+
+# Project Data (чтобы не слить свои пароли и кошельки)
+data/
+*.log
+
+# IDE
+.idea/
+.vscode/

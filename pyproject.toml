@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "finalproject_nosov_m25_555"
+version = "0.1.0"
+description = "ValutaTrade Hub - Console Currency Wallet"
+authors = ["Maksim Nosov"]
+readme = "README.md"
+packages = [{include = "valutatrade_hub", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+prettytable = "^3.10.0"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.1.0"
+
+[tool.poetry.scripts]
+project = "valutatrade_hub.main:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
