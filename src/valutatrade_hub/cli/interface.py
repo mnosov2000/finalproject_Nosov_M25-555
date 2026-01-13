@@ -1,10 +1,12 @@
 import shlex
 import argparse
-import sys
 from valutatrade_hub.core.usecases import CoreService
 from valutatrade_hub.core.exceptions import (
     InsufficientFundsError, CurrencyNotFoundError, ApiRequestError
 )
+# импортируем наш апдейтер
+from valutatrade_hub.parser_service.updater import RatesUpdater
+from valutatrade_hub.core.utils import load_json, RATES_FILE
 
 class CLI:
     def __init__(self):
@@ -19,14 +21,12 @@ class CLI:
                 user_input = input(f"{self._get_prompt}> ").strip()
                 if not user_input:
                     continue
-                
                 self._handle_command(user_input)
-                
             except KeyboardInterrupt:
                 print("\nВыход...")
                 self.running = False
             except Exception as e:
-                print(f"Критическая ошибка: {e}")
+                print(f"Критическая ошибка CLI: {e}")
 
     @property
     def _get_prompt(self):
@@ -61,23 +61,15 @@ class CLI:
                 self._cmd_sell(args)
             elif command == "get-rate":
                 self._cmd_get_rate(args)
+            elif command == "update-rates":
+                self._cmd_update_rates(args)
+            elif command == "show-rates":
+                self._cmd_show_rates(args)
             else:
                 print(f"Неизвестная команда: {command}")
 
-        except InsufficientFundsError as e:
-            #вывод ошибки нехватки средств
-            print(f"Ошибка операции: {e}")
-        
-        except CurrencyNotFoundError as e:
-            #вывод ошибки валюты
+        except (InsufficientFundsError, CurrencyNotFoundError, ApiRequestError) as e:
             print(f"Ошибка: {e}")
-            print("Совет: Используйте стандартные коды (USD, EUR, BTC, ETH).")
-        
-        except ApiRequestError as e:
-            #вывод ошибки апи
-            print(f"Ошибка данных: {e}")
-            print("Попробуйте повторить запрос позже.")
-
         except ValueError as e:
             print(f"Ошибка ввода: {e}")
 
@@ -140,6 +132,52 @@ class CLI:
         except SystemExit:
              print("Ошибка: get-rate --from <CODE> --to <CODE>")
 
+    def _cmd_update_rates(self, args):
+        parser = argparse.ArgumentParser(add_help=False)
+        parser.add_argument("--source", default=None, help="coingecko or exchangerate")
+        try:
+            parsed = parser.parse_args(args)
+            updater = RatesUpdater()
+            print(updater.run_update(specific_source=parsed.source))
+        except SystemExit:
+            print("Ошибка: update-rates [--source <name>]")
+        except Exception as e:
+            print(f"Сбой обновления: {e}")
+
+    def _cmd_show_rates(self, args):
+        parser = argparse.ArgumentParser(add_help=False)
+        parser.add_argument("--currency", default=None)
+        parser.add_argument("--top", type=int, default=None)
+        try:
+            parsed = parser.parse_args(args)
+            data = load_json(RATES_FILE, {})
+            pairs = data.get("pairs", {})
+            
+            if not pairs:
+                print("Кэш курсов пуст. Сделайте update-rates.")
+                return
+
+            print(f"Курсы из кэша (обновлено: {data.get('last_refresh', 'N/A')}):")
+            
+            # фильтрация
+            filtered = []
+            for pair, info in pairs.items():
+                if parsed.currency and parsed.currency.upper() not in pair:
+                    continue
+                filtered.append((pair, info))
+
+            # сортировка по убыванию цены
+            filtered.sort(key=lambda x: x[1]['rate'], reverse=True)
+
+            if parsed.top:
+                filtered = filtered[:parsed.top]
+
+            for pair, info in filtered:
+                print(f"- {pair}: {info['rate']:.4f} (Источник: {info['source']})")
+                
+        except SystemExit:
+            print("Ошибка аргументов show-rates")
+
     def _print_help(self):
         print("""
 Доступные команды:
@@ -149,6 +187,7 @@ class CLI:
   buy --currency <CODE> --amount <float>
   sell --currency <CODE> --amount <float>
   get-rate --from <CODE> --to <CODE>
+  update-rates [--source <coingecko|exchangerate>]
+  show-rates [--currency <CODE>] [--top <N>]
   exit
         """)
- 
