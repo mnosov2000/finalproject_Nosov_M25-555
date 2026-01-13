@@ -1,13 +1,23 @@
 class ValutaTradeError(Exception):
-    #базовый класс для всех ошибок приложения
+    #база для всех ошибок
     pass
-
-class CurrencyNotFoundError(ValutaTradeError):
-    #когда валюта не найдена в реестре
-    def __init__(self, currency_code: str):
-        self.currency_code = currency_code
-        super().__init__(f"Валюта '{currency_code}' не найдена в системе.")
 
 class InsufficientFundsError(ValutaTradeError):
-    #когда не хватает денег
-    pass
+    #нет денег
+    def __init__(self, available: float, required: float, code: str):
+        self.available = available
+        self.required = required
+        self.code = code
+        super().__init__(f"Недостаточно средств: доступно {available:.4f} {code}, требуется {required:.4f} {code}")
+
+class CurrencyNotFoundError(ValutaTradeError):
+    #нет такой валюты
+    def __init__(self, code: str):
+        self.code = code
+        super().__init__(f"Неизвестная валюта '{code}'")
+
+class ApiRequestError(ValutaTradeError):
+    #ошибка сети или апи
+    def __init__(self, reason: str):
+        self.reason = reason
+        super().__init__(f"Ошибка при обращении к внешнему API: {reason}")

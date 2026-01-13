@@ -1,12 +1,18 @@
 import uuid
 import secrets
-from datetime import datetime
-from typing import Optional, Dict, Tuple
+from datetime import datetime, timedelta
+from typing import Optional
 
 from valutatrade_hub.core.models import User, Portfolio, Wallet
 from valutatrade_hub.core.utils import (
     load_json, save_json, USERS_FILE, PORTFOLIOS_FILE, RATES_FILE
 )
+from valutatrade_hub.core.exceptions import (
+    InsufficientFundsError, CurrencyNotFoundError, ApiRequestError
+)
+from valutatrade_hub.decorators import log_action
+from valutatrade_hub.core.currencies import get_currency
+from valutatrade_hub.infra.settings import SettingsLoader
 
 MOCK_RATES = {
     "BTC_USD": 59337.21,
@@ -18,12 +24,12 @@ MOCK_RATES = {
 class CoreService:
     def __init__(self):
         self.current_user: Optional[User] = None
+        self.settings = SettingsLoader()
 
+    @log_action(action_name="REGISTER")
     def register(self, username: str, password: str) -> str:
-        #загружаем всех пользователей
         users_data = load_json(USERS_FILE, [])
         
-        #проверка что ник не занят
         for u in users_data:
             if u["username"] == username:
                 raise ValueError(f"Имя пользователя '{username}' уже занято")
@@ -31,14 +37,13 @@ class CoreService:
         user_id = len(users_data) + 1
         salt = secrets.token_hex(8)
         
-        #создаем объект чтобы там захешировался пароль
         temp_user = User(user_id, username, "", salt, datetime.now())
         temp_user.change_password(password)
 
         users_data.append(temp_user.to_dict())
         save_json(USERS_FILE, users_data)
 
-        #создаем портфель и сразу даем бонус, иначе купить ничего нельзя будет
+        #создаем кошелек и даем бонус
         portfolios = load_json(PORTFOLIOS_FILE, [])
         new_portfolio_data = {
             "user_id": user_id, 
@@ -51,15 +56,14 @@ class CoreService:
 
         return f"Пользователь '{username}' зарегистрирован (id={user_id}). Вам начислен стартовый бонус 1000.00 USD!"
 
+    @log_action(action_name="LOGIN")
     def login(self, username: str, password: str) -> str:
-        #ищем юзера по нику
         users_data = load_json(USERS_FILE, [])
         found_user_data = next((u for u in users_data if u["username"] == username), None)
 
         if not found_user_data:
             raise ValueError(f"Пользователь '{username}' не найден")
 
-        #восстанавливаем объект user
         user = User(
             user_id=found_user_data["user_id"],
             username=found_user_data["username"],
@@ -68,7 +72,6 @@ class CoreService:
             registration_date=datetime.fromisoformat(found_user_data["registration_date"])
         )
 
-        #сверяем хеши паролей
         if user.verify_password(password):
             self.current_user = user
             return f"Вы вошли как '{username}'"
@@ -83,7 +86,6 @@ class CoreService:
         user_p_data = next((p for p in portfolios_data if p["user_id"] == self.current_user.user_id), None)
         
         if not user_p_data:
-            #если вдруг портфеля нет, создаем пустой с долларовым счетом
             p = Portfolio(self.current_user.user_id)
             p.add_currency("USD")
             return p
@@ -96,12 +98,13 @@ class CoreService:
 
     def _save_portfolio(self, portfolio: Portfolio):
         all_data = load_json(PORTFOLIOS_FILE, [])
-        #удаляем старую запись этого юзера и пишем новую
         all_data = [p for p in all_data if p["user_id"] != portfolio.user]
         all_data.append(portfolio.to_dict())
         save_json(PORTFOLIOS_FILE, all_data)
 
     def show_portfolio(self, base_currency: str = "USD") -> str:
+        get_currency(base_currency)
+
         portfolio = self._get_portfolio()
         wallets = portfolio.wallets
         
@@ -116,45 +119,49 @@ class CoreService:
         
         for code in sorted_codes:
             wallet = wallets[code]
-            #считаем сколько это стоит в базовой валюте
+            try:
+                curr_obj = get_currency(code)
+                display_name = curr_obj.name
+            except CurrencyNotFoundError:
+                display_name = code
+
             rate = self._get_rate_value(code, base_currency, rates_data)
             value = wallet.balance * rate
             total += value
-            output.append(f"- {code}: {wallet.balance:.4f}  → {value:.2f} {base_currency}")
+            output.append(f"- {code} ({display_name}): {wallet.balance:.4f}  → {value:.2f} {base_currency}")
             
         output.append("-" * 33)
         output.append(f"ИТОГО: {total:.2f} {base_currency}")
         return "\n".join(output)
 
+    @log_action(action_name="BUY")
     def buy(self, currency: str, amount: float) -> str:
-        #покупка валюты за доллары
         if amount <= 0:
             raise ValueError("'amount' должен быть положительным числом")
         if currency == "USD":
             raise ValueError("Нельзя купить USD за USD.")
+        
+        get_currency(currency)
             
         portfolio = self._get_portfolio()
         
-        #источник средств - usd
         try:
             usd_wallet = portfolio.get_wallet("USD")
         except ValueError:
             portfolio.add_currency("USD")
             usd_wallet = portfolio.get_wallet("USD")
             
-        #считаем сколько списать долларов
         rates = self._load_rates()
+        # ВОТ ЗДЕСЬ РАНЬШЕ БЫЛА ОШИБКА, ТЕПЕРЬ МЕТОД ЕСТЬ ВНИЗУ
         rate_to_usd = self._get_rate_value(currency, "USD", rates)
         if rate_to_usd == 0:
-             raise ValueError(f"Нет курса для {currency}, покупка невозможна.")
+             raise ApiRequestError(f"Нет курса для {currency}")
              
         cost_in_usd = amount * rate_to_usd
         
-        #проверка баланса перед операцией
         if usd_wallet.balance < cost_in_usd:
-            raise ValueError(f"Недостаточно USD. Требуется {cost_in_usd:.2f}, доступно {usd_wallet.balance:.2f}")
+            raise InsufficientFundsError(usd_wallet.balance, cost_in_usd, "USD")
             
-        #проводим транзакцию
         usd_wallet.withdraw(cost_in_usd)
         
         portfolio.add_currency(currency)
@@ -166,10 +173,14 @@ class CoreService:
         return (f"Покупка выполнена: {amount:.4f} {currency} за {cost_in_usd:.2f} USD\n"
                 f"Баланс USD: {usd_wallet.balance:.2f}")
 
+    @log_action(action_name="SELL")
     def sell(self, currency: str, amount: float) -> str:
-        #продажа валюты за доллары
+        if amount <= 0:
+            raise ValueError("'amount' должен быть положительным числом")
         if currency == "USD":
             raise ValueError("Нельзя продать USD.")
+
+        get_currency(currency)
             
         portfolio = self._get_portfolio()
         
@@ -178,12 +189,8 @@ class CoreService:
         except ValueError:
             raise ValueError(f"У вас нет кошелька '{currency}'.")
 
-        if amount > target_wallet.balance:
-             raise ValueError(f"Недостаточно средств: доступно {target_wallet.balance}, требуется {amount}")
-             
         target_wallet.withdraw(amount)
         
-        #конвертируем в доллары и начисляем
         rates = self._load_rates()
         rate_to_usd = self._get_rate_value(currency, "USD", rates)
         revenue_in_usd = amount * rate_to_usd
@@ -201,10 +208,15 @@ class CoreService:
                 f"Баланс USD: {usd_wallet.balance:.2f}")
 
     def get_rate(self, from_currency: str, to_currency: str) -> str:
+        get_currency(from_currency)
+        get_currency(to_currency)
+
         rates = self._load_rates()
+        self._check_rates_freshness(rates)
+        
         rate = self._get_rate_value(from_currency, to_currency, rates)
         
-        updated = "сейчас (mock)"
+        updated = "N/A"
         direct = f"{from_currency}_{to_currency}"
         if direct in rates:
             updated = rates[direct].get("updated_at", "N/A")
@@ -214,18 +226,31 @@ class CoreService:
         return f"Курс {from_currency}→{to_currency}: {rate:.8f} (обновлено: {updated})"
 
     def _load_rates(self) -> dict:
-        #загрузка курсов из файла
         data = load_json(RATES_FILE, {})
         if not data:
             return {k: {"rate": v, "updated_at": datetime.now().isoformat()} for k, v in MOCK_RATES.items()}
         return data
 
+    def _check_rates_freshness(self, rates_data: dict):
+        last_update_str = None
+        for key, val in rates_data.items():
+            if isinstance(val, dict) and "updated_at" in val:
+                last_update_str = val["updated_at"]
+                break
+        
+        if not last_update_str:
+            return
+
+        last_update = datetime.fromisoformat(last_update_str)
+        ttl = self.settings.get("RATES_TTL_SECONDS", 300)
+        
+        if datetime.now() - last_update > timedelta(seconds=ttl):
+            pass
+
     def _get_rate_value(self, base: str, quote: str, rates_data: dict) -> float:
-        #расчет кросс-курса
         if base == quote:
             return 1.0
             
-        #внутренняя функция чтобы найти курс к доллару
         def get_usd_rate(code):
             if code == "USD": return 1.0
             if f"{code}_USD" in rates_data:
@@ -239,6 +264,5 @@ class CoreService:
         
         if base_usd == 0 or quote_usd == 0:
             return 0.0
-        
-
+            
         return base_usd / quote_usd

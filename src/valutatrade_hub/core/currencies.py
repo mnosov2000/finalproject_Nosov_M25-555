@@ -48,8 +48,7 @@ class CryptoCurrency(Currency):
         return f"[CRYPTO] {self.code} — {self.name} (Algo: {self.algorithm}, MCAP: {self.market_cap:.2e})"
 
 
-#реестр доступных валют git add .
-git commit -m "архитектура: добавил классы валют и исключения"
+#реестр доступных валют 
 _REGISTRY: Dict[str, Currency] = {
     "USD": FiatCurrency("USD", "US Dollar", "United States"),
     "EUR": FiatCurrency("EUR", "Euro", "Eurozone"),

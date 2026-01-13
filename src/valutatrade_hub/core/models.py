@@ -2,6 +2,7 @@ import hashlib
 from datetime import datetime
 from typing import Dict, Optional
 import copy
+from valutatrade_hub.core.exceptions import InsufficientFundsError
 
 class User:
     #класс юзера
@@ -15,7 +16,6 @@ class User:
     ):
         #инициализация
         self._user_id = user_id
-        #проверка имени через сеттер
         self.username = username 
         self._hashed_password = hashed_password
         self._salt = salt
@@ -63,7 +63,7 @@ class User:
         return hashlib.sha256((password + salt).encode()).hexdigest()
 
     def to_dict(self) -> dict:
-        #в словарь для джейсона
+        #в словарь для джйсона
         return {
             "user_id": self._user_id,
             "username": self._username,
@@ -102,7 +102,7 @@ class Wallet:
         if amount <= 0:
             raise ValueError("Сумма снятия должна быть положительной.")
         if amount > self.balance:
-            raise ValueError(f"Недостаточно средств. Текущий баланс: {self.balance}")
+            raise InsufficientFundsError(self.balance, amount, self.currency_code)
         self.balance -= amount
 
     def get_balance_info(self) -> str:
@@ -110,7 +110,6 @@ class Wallet:
         return f"{self.balance:.2f} {self.currency_code}"
 
     def to_dict(self) -> dict:
-        #в словарь
         return {
             "currency_code": self.currency_code,
             "balance": self.balance
@@ -125,7 +124,6 @@ class Portfolio:
 
     @property
     def user(self) -> int:
-        #id юзера
         return self._user_id
 
     @property

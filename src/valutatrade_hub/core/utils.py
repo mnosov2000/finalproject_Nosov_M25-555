@@ -1,21 +1,26 @@
 import json
 import os
-from typing import Any, Dict, List
+from typing import Any
+from valutatrade_hub.infra.settings import SettingsLoader
 
-#пути к файлам данных
-DATA_DIR = "data"
-USERS_FILE = os.path.join(DATA_DIR, "users.json")
-PORTFOLIOS_FILE = os.path.join(DATA_DIR, "portfolios.json")
-RATES_FILE = os.path.join(DATA_DIR, "rates.json")
+#грузим настройки
+settings = SettingsLoader()
+
+#пути берем из конфига
+USERS_FILE = settings.get("USERS_FILE")
+PORTFOLIOS_FILE = settings.get("PORTFOLIOS_FILE")
+RATES_FILE = settings.get("RATES_FILE")
 
 def _ensure_file_exists(filepath: str, default_content: Any):
-    #создаем файл если его нет
+    #создаем папку если её нет
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    
     if not os.path.exists(filepath):
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(default_content, f, indent=4)
 
 def load_json(filepath: str, default: Any) -> Any:
-    #читаем джйсон
+    #читаем файл
     _ensure_file_exists(filepath, default)
     try:
         with open(filepath, "r", encoding="utf-8") as f:
@@ -24,6 +29,6 @@ def load_json(filepath: str, default: Any) -> Any:
         return default
 
 def save_json(filepath: str, data: Any):
-    #пишем джйсон
+    #пишем файл
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
