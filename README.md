@@ -1,72 +1,71 @@
-# finalproject_Nosov_M25-555
+This is an educational project—a trading platform simulator. The application can download real currency and crypto rates via API and allows users to "trade" them using a virtual account.
 
-# ValutaTrade Hub 
+Project Features
+Accounts: Users can register and log in. Passwords are not stored in plain text; SHA-256 hashing with salt is used.
 
-Coursework project: A trading platform simulator with real-time currency rates.
-The application allows users to register, manage a multi-currency wallet, and trade (buy/sell) currencies using actual market data.
+Wallet: Every user has their own balance. A starting capital of 1000 USD is provided upon registration. You can buy and sell BTC, ETH, EUR, and other currencies.
 
-##  Features
+Real-time Rates: The program connects to the internet (CoinGecko and ExchangeRate-API) to fetch current market prices.
 
-* **Registration & Login:** User system with password hashing (SHA-256 + salt).
-* **Multi-currency Wallet:** Support for USD, EUR, RUB, BTC, ETH, and others. Base currency is USD.
-* **Real-time Rates:** The parser collects data from CoinGecko (crypto) and ExchangeRate-API (fiat).
-* **Trading:** Buy and sell currencies with automatic cross-rate conversion.
-* **History:** Logging of user operations and rate history tracking.
+Logging: All actions (buys, sells, errors) are recorded in log files for tracking.
 
-##  Tech Stack & Architecture
+Data Storage: The database is simulated using simple JSON files located in the data/ folder.
 
-The project is written in **Python 3.12** using **Poetry** for dependency management.
+Architecture & Design Patterns
+The code is divided into logical layers as required by the assignment:
 
-The code implements the following architectural patterns:
-* **Singleton:** For settings loading (`SettingsLoader`).
-* **Decorator:** For logging user actions (`@log_action`).
-* **Strategy:** For handling different APIs in the parser (`CoinGeckoClient`, `ExchangeRateApiClient`).
-* **Layered Architecture:** Separation into `Core` (business logic), `Infra` (data), `ParserService` (external APIs), and `CLI` (interface).
+Core: Main business logic (balance checks, rate calculations).
 
-Data is stored in JSON files in the `data/` folder (database emulation).
+Infra: Settings management and file I/O.
 
-##  Installation & Usage
+ParserService: A module responsible for gathering data from external APIs.
 
-For convenience, all commands are collected in the `Makefile`.
+CLI: A command-line interface for user interaction.
 
-1.  **Installation and First Run:**
-    ```bash
-    make project
-    ```
-    *(This command installs dependencies, sets up the environment, and starts the app)*
+I implemented several design patterns covered in class: Singleton (for settings), Decorator (for logging), and Strategy (for handling different APIs).
 
-2.  **Run (without reinstalling):**
-    ```bash
-    poetry run project
-    ```
+Installation and Setup
+All main actions are managed via a Makefile to avoid typing long paths manually.
 
-3.  **Data Cleanup (Reset Database):**
-    ```bash
-    # Warning! This deletes all users and wallets
-    rm data/*.json
-    ```
+First Run (install dependencies and start):
 
-## CLI Commands
+Bash
 
-After launching, you will enter the application console (`guest>` or `username>`). Type `help` for a list of commands.
+make project
+Standard Run (if already installed):
 
-| Command | Description | Example |
-| :--- | :--- | :--- |
-| `register` | Register a new user | `register --username max --password 123` |
-| `login` | Log in to the system | `login --username max --password 123` |
-| `update-rates` | **Download fresh rates from the internet** | `update-rates` |
-| `show-rates` | Show current rates from cache | `show-rates --top 5` or `show-rates --currency RUB` |
-| `buy` | Buy currency with USD | `buy --currency BTC --amount 0.05` |
-| `sell` | Sell currency (receive USD) | `sell --currency BTC --amount 0.05` |
-| `show-portfolio` | Show wallet balance | `show-portfolio` |
-| `get-rate` | Get rate for a specific pair | `get-rate --from BTC --to USD` |
-| `exit` | Exit the program | `exit` |
+Bash
 
-## ℹ️ Parser Service Details
+poetry run project
+Reset Everything (delete users and balances):
 
-The parser operates as a separate service. It downloads rates and saves them to `data/rates.json` (cache for the Core) and `data/exchange_rates.json` (history).
-If one source (e.g., CoinGecko) is unavailable, the program continues working with data from other sources or logs the error.
-API keys and settings are located in `src/valutatrade_hub/infra/settings.py`.
+Bash
 
+rm data/*.json
+CLI Commands
+Once the program starts, you will see a guest> (or username>) prompt. Available commands:
+
+register --username name --password pass — create a new account.
+
+login --username name --password pass — log into your account.
+
+update-rates — Important: press this to download fresh prices from the internet.
+
+show-rates — view current prices from the local cache.
+
+buy --currency BTC --amount 0.01 — purchase a currency using USD.
+
+sell --currency BTC --amount 0.01 — sell a currency to receive USD.
+
+show-portfolio — check your current wallet balances and total value.
+
+exit — close the program.
+
+About the Parser
+The parser is a standalone module. It saves data to data/rates.json (for fast access) and data/exchange_rates.json. If an API like CoinGecko is temporarily unavailable (due to rate limits), the program will log the error but continue to run.
+
+ 
+Demo
+asciinema: [![asciicast](https://asciinema.org/a/y8RCtpMmmaOUYPev.svg)](https://asciinema.org/a/y8RCtpMmmaOUYPev)
 
 Developed by student of group M25-555 Nosov Maksim

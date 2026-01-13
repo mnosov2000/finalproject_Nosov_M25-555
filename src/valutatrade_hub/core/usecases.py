@@ -1,4 +1,5 @@
 import secrets
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -36,13 +37,14 @@ class CoreService:
         user_id = len(users_data) + 1
         salt = secrets.token_hex(8)
         
+        # Твой оригинальный рабочий конструктор
         temp_user = User(user_id, username, "", salt, datetime.now())
         temp_user.change_password(password)
 
         users_data.append(temp_user.to_dict())
         save_json(USERS_FILE, users_data)
 
-        #создаем кошелек и даем бонус
+        # Создаем кошелек и даем бонус
         portfolios = load_json(PORTFOLIOS_FILE, [])
         new_portfolio_data = {
             "user_id": user_id, 
@@ -151,8 +153,8 @@ class CoreService:
             usd_wallet = portfolio.get_wallet("USD")
             
         rates = self._load_rates()
-        # ВОТ ЗДЕСЬ РАНЬШЕ БЫЛА ОШИБКА, ТЕПЕРЬ МЕТОД ЕСТЬ ВНИЗУ
         rate_to_usd = self._get_rate_value(currency, "USD", rates)
+        
         if rate_to_usd == 0:
              raise ApiRequestError(f"Нет курса для {currency}")
              
@@ -163,8 +165,12 @@ class CoreService:
             
         usd_wallet.withdraw(cost_in_usd)
         
-        portfolio.add_currency(currency)
-        target_wallet = portfolio.get_wallet(currency)
+        try:
+            target_wallet = portfolio.get_wallet(currency)
+        except ValueError:
+            portfolio.add_currency(currency)
+            target_wallet = portfolio.get_wallet(currency)
+
         target_wallet.deposit(amount)
         
         self._save_portfolio(portfolio)
@@ -225,10 +231,29 @@ class CoreService:
         return f"Курс {from_currency}→{to_currency}: {rate:.8f} (обновлено: {updated})"
 
     def _load_rates(self) -> dict:
+
         data = load_json(RATES_FILE, {})
+
+        try:
+
+            crypto_data = load_json("data/exchange_rates.json", [])
+            
+            if isinstance(crypto_data, list):
+                for item in crypto_data:
+                    pair = item.get("pair") 
+                    rate = item.get("rate")
+                    updated_at = item.get("updated_at", datetime.now().isoformat())
+                    
+                    if pair and rate:
+                        data[pair] = {"rate": float(rate), "updated_at": updated_at}
+        except Exception:
+
+            pass
+
         if not data:
             return {k: {"rate": v, "updated_at": datetime.now().isoformat()} for k, v in MOCK_RATES.items()}
         return data
+    # ----------------------------------------
 
     def _check_rates_freshness(self, rates_data: dict):
         last_update_str = None
