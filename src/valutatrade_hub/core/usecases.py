@@ -1,4 +1,3 @@
-import uuid
 import secrets
 from datetime import datetime, timedelta
 from typing import Optional
@@ -252,7 +251,8 @@ class CoreService:
             return 1.0
             
         def get_usd_rate(code):
-            if code == "USD": return 1.0
+            if code == "USD": 
+                return 1.0
             if f"{code}_USD" in rates_data:
                 return rates_data[f"{code}_USD"]["rate"]
             if f"USD_{code}" in rates_data:

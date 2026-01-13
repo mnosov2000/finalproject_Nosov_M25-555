@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import  Dict, Any
 from valutatrade_hub.core.exceptions import ApiRequestError
 from valutatrade_hub.parser_service.config import ParserConfig
 from valutatrade_hub.parser_service.api_clients import CoinGeckoClient, ExchangeRateApiClient

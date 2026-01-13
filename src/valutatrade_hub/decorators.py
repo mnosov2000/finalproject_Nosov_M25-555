@@ -1,5 +1,4 @@
 import functools
-import logging
 from valutatrade_hub.infra.logging_config import setup_logging
 
 #запускаем логгер

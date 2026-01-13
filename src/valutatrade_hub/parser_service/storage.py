@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any 
 from valutatrade_hub.parser_service.config import ParserConfig
 
 class Storage:

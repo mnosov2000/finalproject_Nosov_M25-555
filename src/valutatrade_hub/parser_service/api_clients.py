@@ -1,6 +1,6 @@
 import requests
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Dict  
 from valutatrade_hub.core.exceptions import ApiRequestError
 from valutatrade_hub.parser_service.config import ParserConfig
 
