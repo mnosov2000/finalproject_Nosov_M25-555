@@ -1,5 +1,8 @@
+from valutatrade_hub.cli.interface import CLI
+
 def main():
-    print("ValutaTrade Hub запущен")
+    app = CLI()
+    app.run()
 
 if __name__ == "__main__":
     main()
