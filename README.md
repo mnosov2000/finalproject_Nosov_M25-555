@@ -70,7 +70,7 @@ The parser is a standalone module. It saves data to data/rates.json (for fast ac
 Demo
 asciinema: [![asciicast](https://asciinema.org/a/y8RCtpMmmaOUYPev.svg)](https://asciinema.org/a/y8RCtpMmmaOUYPev)
 
-upd. new version demo [![asciicast](https://asciinema.org/a/RrxGj1OGaCsZMp3s.svg)](https://asciinema.org/a/RrxGj1OGaCsZMp3s)
+upd. new version demo [![asciicast](https://asciinema.org/a/3h8FhEp8cSsKUB4a.svg)](https://asciinema.org/a/3h8FhEp8cSsKUB4a)
 
 
 Developed by student of group M25-555 Nosov Maksim
