@@ -1,3 +1,5 @@
+ValutaTrade Hub
+
 This is an educational project—a trading platform simulator. The application can download real currency and crypto rates via API and allows users to "trade" them using a virtual account.
 
 Project Features
@@ -67,5 +69,8 @@ The parser is a standalone module. It saves data to data/rates.json (for fast ac
  
 Demo
 asciinema: [![asciicast](https://asciinema.org/a/y8RCtpMmmaOUYPev.svg)](https://asciinema.org/a/y8RCtpMmmaOUYPev)
+
+upd. new version demo [![asciicast](https://asciinema.org/a/RrxGj1OGaCsZMp3s.svg)](https://asciinema.org/a/RrxGj1OGaCsZMp3s)
+
 
 Developed by student of group M25-555 Nosov Maksim

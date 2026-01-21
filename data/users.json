@@ -1,0 +1,9 @@
+[
+    {
+        "user_id": 1,
+        "username": "nosov",
+        "hashed_password": "6a0a5eac1c97691664d20bb0c922ea62dd1f4bbe5826e02e9e1f08a985c3ce41",
+        "salt": "abe5cc44ac8b9865",
+        "registration_date": "2026-01-21T22:16:19.714248"
+    }
+]

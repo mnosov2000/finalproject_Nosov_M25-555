@@ -4,7 +4,7 @@ from valutatrade_hub.core.usecases import CoreService
 from valutatrade_hub.core.exceptions import (
     InsufficientFundsError, CurrencyNotFoundError, ApiRequestError
 )
-# импортируем наш апдейтер
+# импортируем апдейтер
 from valutatrade_hub.parser_service.updater import RatesUpdater
 from valutatrade_hub.core.utils import load_json, RATES_FILE
 

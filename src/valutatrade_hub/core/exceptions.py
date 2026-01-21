@@ -1,5 +1,5 @@
 class ValutaTradeError(Exception):
-    #база для всех ошибок
+
     pass
 
 class InsufficientFundsError(ValutaTradeError):

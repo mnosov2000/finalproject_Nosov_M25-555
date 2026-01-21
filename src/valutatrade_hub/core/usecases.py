@@ -37,14 +37,14 @@ class CoreService:
         user_id = len(users_data) + 1
         salt = secrets.token_hex(8)
         
-        # Твой оригинальный рабочий конструктор
+
         temp_user = User(user_id, username, "", salt, datetime.now())
         temp_user.change_password(password)
 
         users_data.append(temp_user.to_dict())
         save_json(USERS_FILE, users_data)
 
-        # Создаем кошелек и даем бонус
+        #создаем кошелек и даем бонус
         portfolios = load_json(PORTFOLIOS_FILE, [])
         new_portfolio_data = {
             "user_id": user_id, 
@@ -188,15 +188,21 @@ class CoreService:
         get_currency(currency)
             
         portfolio = self._get_portfolio()
-        
+
         try:
             target_wallet = portfolio.get_wallet(currency)
         except ValueError:
             raise ValueError(f"У вас нет кошелька '{currency}'.")
 
+
+        rates = self._load_rates()
+        rate_key = f"{currency}_USD"
+
+        if currency not in rates and rate_key not in rates:
+             raise ApiRequestError(f"Неизвестная валюта '{currency}' (нет биржевых данных)")
+
         target_wallet.withdraw(amount)
         
-        rates = self._load_rates()
         rate_to_usd = self._get_rate_value(currency, "USD", rates)
         revenue_in_usd = amount * rate_to_usd
         

@@ -52,6 +52,7 @@ class RatesUpdater:
         #сохраняем если есть  
         if results:
             print(f"INFO: Сохранение {len(results)} записей в файлы...")
+            payload = {"pairs": results}
             self.storage.save_rates(results)
             self.storage.save_history(results)
             return f"Успешно обновлено: {total_updated}. Ошибок: {len(errors)}"

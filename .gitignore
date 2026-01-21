@@ -1,18 +1,28 @@
-# Python
+# Python basics
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+.ruff_cache/
 
-# Poetry
-.venv/
-poetry.lock
-
-# Build
+# Distribution / Packaging
 dist/
+build/
+*.egg-info/
 
-# Project Data (чтобы не слить свои пароли и кошельки)
-data/
-*.log
+# Virtual Environment
+.venv/
+env/
+venv/
 
-# IDE
+# IDE settings
 .idea/
 .vscode/
+
+# Project specific
+*.log
+ 
+data/rates.json
+data/exchange_rates.json
+
+# MacOS
+.DS_Store
